@@ -7,7 +7,7 @@ import json
 
 from collections import defaultdict
 
-CHAIN_LENGTH = 7
+CHAIN_LENGTH = 6
 
 def dump(mc):
     print json.dumps(mc, sort_keys=True, indent=2)
@@ -16,17 +16,22 @@ def autovivify(levels=1, final=dict):
     return (defaultdict(final) if levels < 2 else
             defaultdict(lambda: autovivify(levels - 1, final)))
 
-def sanitise_line(l):
+def remove_punctutation(l):
     """ Remove all punctuation and suppress multiple spaces. """
     return string.rstrip(" ".join((l).translate(string.maketrans(string.punctuation,
         " " * len(string.punctuation))).upper().split())) + " "
 
+def add_trailing_space(l):
+    """ Suppresses mulitple spaces but adds a trailing space. """
+    return string.rstrip(" ".join(l.split())) + " "
+    
+
 def build_markov_chain(mc, levels=1):
-    lastChars = " "
+    lastChars = ". "
     nextChar = ""
     currentChain = mc
     for line in fileinput.input():
-        sLine = sanitise_line(line)
+        sLine = add_trailing_space(line)
         for i in xrange(len(sLine)):
             if len(lastChars) < levels - 1:
                 """ At the start of the input text. """
@@ -88,7 +93,7 @@ def get_next_char(mc, precedingChars, levels=1):
 
 def say_something(mc, levels=1, msgLength=100):
     msg = ""
-    lastChars = " "
+    lastChars = ". "
     for c in xrange(msgLength):
         if msg == "":
             """
