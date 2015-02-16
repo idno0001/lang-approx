@@ -65,7 +65,6 @@ def get_rand_list(mc, precedingChars, levels=1):
             # randList += get_rand_list(mc[x], precedingChars, levels - 1)
     elif precedingChars != "":
         # Take the next character in the preceding chain.
-        # randList += get_rand_list(mc[precedingChars[0]], precedingChars[1:], levels - 1)
         for c in precedingChars:
             mc = mc[c]
         nextChars = get_rand_list(mc, "", levels - len(precedingChars))
@@ -78,37 +77,12 @@ def get_rand_list(mc, precedingChars, levels=1):
     # What if randList is empty?
     return randList
 
-# What if levels == 1?
-def get_next_char(mc, precedingChars, levels=1):
-    if len(precedingChars) == levels - 1:
-        # We have already built up the first few characters of the message.
-        # frequencies = mc
-        # for c in precedingChars:
-        #     frequencies = frequencies[c]
-        # return random.choice([x for x in frequencies for y in xrange(frequencies[x])])
-        return random.choice(get_rand_list(mc, precedingChars, levels))
-    else:
-        # Not enough preceding characters: we are at the start of a message.
-        return random.choice(get_rand_list(mc, precedingChars, levels))
-
 def say_something(mc, levels=1, msgLength=100):
     msg = ""
     lastChars = ". "
     for c in xrange(msgLength):
-        if msg == "":
-            """
-                Choose the first (levels - 1) characters completely at random.
-                Start with a space to guarantee word boundary.
-            """
-            nextChar = get_next_char(mc, lastChars, CHAIN_LENGTH)
-            msg += nextChar
-        else:
-            """
-                Choose the next character depending on the previous
-                (levels - 1) characters.
-            """
-            nextChar = get_next_char(mc, lastChars, CHAIN_LENGTH)
-            msg += nextChar
+        nextChar = random.choice(get_rand_list(mc, lastChars, levels))
+        msg += nextChar
         lastChars = "".join((lastChars[1:], nextChar))
     return msg
 
