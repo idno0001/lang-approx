@@ -25,18 +25,21 @@ def add_trailing_space(l):
 class LanguageGenerator:
     def __init__(self, inFile, chainLength):
         self.chainLength = chainLength
-        self.mc = autovivify(chainLength, int)
+        self.mc = autovivify(chainLength + 1, int)
         self.build_markov_chain(inFile)
 
     def build_markov_chain(self, inFile):
-        lastChars = ". "
+        if self.chainLength == 1:
+            lastChars = " "
+        else:
+            lastChars = ". "
         nextChar = ""
         currentChain = self.mc
         with open(inFile) as f:
             for line in f:
                 sLine = add_trailing_space(line)
                 for i in xrange(len(sLine)):
-                    if len(lastChars) < self.chainLength - 1:
+                    if len(lastChars) < self.chainLength:
                         """ At the start of the input text. """
                         lastChars += sLine[i]
                     else:
@@ -52,8 +55,8 @@ class LanguageGenerator:
 
     def get_rand_list(self, precedingChars, levels=None, mc=None):
         """
-            If levels == 1, return a list of the possible next character.
-            If levels > 1, do the same for the next possible strings
+            If levels == 0, return a list of the possible next character.
+            If levels >= 1, do the same for the next possible strings
             (with length given by levels).
             Both lists are weighted according to the probabilities that the
             elements occur.
@@ -65,8 +68,8 @@ class LanguageGenerator:
         randList = []
         
         # The following should raise an exception.
-        # if len(precedingChars) > levels - 1:
-        if precedingChars == "" and levels > 1:
+        # if len(precedingChars) > levels:
+        if precedingChars == "" and levels >= 1:
             # No preceding characters: random choice of subsequent levels.
             for x in mc:
                 nextChars = self.get_rand_list(precedingChars,
@@ -93,7 +96,11 @@ class LanguageGenerator:
 
     def say_something(self, msgLength=100):
         msg = ""
-        lastChars = ". "  # We're at the start of a new sentence.
+        # We're at the start of a new sentence.
+        if self.chainLength == 1:
+            lastChars = " "
+        else:
+            lastChars = ". "
         for c in xrange(msgLength):
             nextChar = random.choice(self.get_rand_list(lastChars))
             msg += nextChar
@@ -108,7 +115,7 @@ def main(argv=None):
         argv = sys.argv
 	
     # Build the Markov chain
-    mc = LanguageGenerator(argv[1], 7)
+    mc = LanguageGenerator(argv[1], 9)
     mc.print_something(500)
     
 if __name__ == "__main__":
