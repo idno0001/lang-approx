@@ -9,6 +9,13 @@ import sys
 
 from collections import defaultdict
 
+LOWER_NUM_WORDS = 20
+UPPER_NUM_WORDS = 500
+LOWER_NUM_SENTENCES = 3
+UPPER_NUM_SENTENCES = 10
+LOWER_NUM_PARAGRAPHS = 3
+UPPER_NUM_PARAGRAPHS = 8
+
 class ChainMode:
     CHARS = 0
     WORDS = 1
@@ -195,9 +202,9 @@ class LanguageGenerator:
             if self.chainLength >= 2:
                 return lastString[-2:] == "  "
             elif self.chainMode == 1:
-                return lastString[:1] == " "
+                return lastString[-1] == " "
         elif self.chainMode == ChainMode.WORDS:
-            return lastString[:1] == " "
+            return lastString[-1] == " "
 
     def list_to_string(self, l):
         if self.chainMode == ChainMode.CHARS:
@@ -205,67 +212,117 @@ class LanguageGenerator:
         elif self.chainMode == ChainMode.WORDS:
             return "".join(l).rstrip()
 
+    def get_paragraph_length(self, length, outputMode):
+        """
+            If the length has been set to 0, return a random paragraph length.
+        """
+        if length >= 1:
+            return length
+        elif outputMode == OutputMode.SENTENCES:
+            return random.randint(LOWER_NUM_SENTENCES, UPPER_NUM_SENTENCES)
+        elif outputMode == OutputMode.WORDS:
+            return random.randint(LOWER_NUM_WORDS, UPPER_NUM_WORDS)
 
-    def get_random_message(self, msgLength=1, mode=OutputMode.SENTENCES):
+    def new_paragraph(self):
+        """
+            Return the appropriate string to start a new paragraph.
+        """
+        if self.chainMode == ChainMode.CHARS:
+            return "\n\n"
+        elif self.chainMode == ChainMode.WORDS:
+            return ["\n\n"]
+
+    def get_random_message(self, msgLength=0, mode=OutputMode.WORDS,
+                           paragraphs=1):
+        """
+            Print some paragraphs each of length msgLength, which is determined 
+            by the output mode.
+        """
         # We're at the start of a new sentence.
         lastString = self.get_init_string()
         msg = self.get_empty_string()
-        stopCounter = 0
-        while stopCounter < msgLength:
-            randList = self.get_rand_list(lastString)
-            
-            nextString = random.choice(randList)
-            msg += nextString
-            lastString = lastString[1:] + nextString
+        for i in xrange(paragraphs):
+            stopCounter = 0
+            paraLength = self.get_paragraph_length(msgLength, mode)
+            while stopCounter < paraLength:
+                randList = self.get_rand_list(lastString)
                 
-            if (mode == OutputMode.CHARS
-                    or (mode != OutputMode.SENTENCES
-                        and self.chainMode == ChainMode.WORDS)
-                    or (mode == OutputMode.WORDS
-                        and self.at_word_boundary(lastString))
-                    or (mode == OutputMode.SENTENCES
-                        and self.at_end_of_sentence(lastString))):
-                stopCounter += 1
+                nextString = random.choice(randList)
+                msg += nextString
+                lastString = lastString[1:] + nextString
+                    
+                if (mode == OutputMode.CHARS
+                        or (mode != OutputMode.SENTENCES
+                            and self.chainMode == ChainMode.WORDS)
+                        or (mode == OutputMode.WORDS
+                            and self.at_word_boundary(lastString))
+                        or (mode == OutputMode.SENTENCES
+                            and self.at_end_of_sentence(lastString))):
+                    stopCounter += 1
+            if i < paragraphs:
+                msg += self.new_paragraph()
         return self.list_to_string(msg)
-    
-    def print_random_message(self, length=5, mode=None):
-        print self.get_random_message(length, mode)
+
+    def print_random_message(self, length=0, mode=OutputMode.WORDS,
+                             paragraphs=1):
+        print self.get_random_message(length, mode, paragraphs)
             
 
 def main(argv=None):
     if argv is None:
         argv = sys.argv
     
+    # Command line arguments.
     p = argparse.ArgumentParser(description="Take some text, create a Markov \
             chain (of chars or words), and use the Markov chain to random \
             generate words and sentences.")
-    
     # input file
-    p.add_argument("-i", "--input-file", nargs="?",
+    p.add_argument("inputFile", nargs="?",
             type=argparse.FileType("r"), default=sys.stdin, metavar="FILE",
             help="the FILE from which to create the Markov chain (default: \
             stdin)")
     # chain mode
-    p.add_argument("-c", "--chars", dest="chain_chars", action="store_true",
-            help="create a Markov chain of characters (default)")
-    p.add_argument("-w", "--words", dest="chain_words", action="store_true",
-            help="create a Markov chain of words")
+    p.add_argument("-c", "--chain-mode", choices=["chars", "words"],
+            default="chars",
+            help="create a Markov chain of {%(choices)s}")
     # chain length
-    p.add_argument("-l", "--chain-length", nargs="?", type=int,
+    p.add_argument("-l", "--chain-length", type=int,
             default=1, metavar="LENGTH",
             help="the LENGTH of the Markov chain")
+    # output words
+    p.add_argument("-w", "--words", type=int, default=-1, metavar="N",
+            help="output N words (N=0 selects a random positive integer)")
+    # output sentences
+    p.add_argument("-s", "--sentences", type=int, default=-1, metavar="N",
+            help="output N sentences (N=0 selects a random positive integer)")
+    # random length output
+    p.add_argument("-p", "--paragraphs", type=int, default=1, metavar="N",
+            help="output N paragraphs (N=0 selects a random positive integer)")
     
     args = p.parse_args()
     
-    # The chainMode will default to chars unless -w is the *only* argument.
-    if args.chain_words and not args.chain_chars:
+    if args.chain_mode == "words":
         chainMode = ChainMode.WORDS
     else:
         chainMode = ChainMode.CHARS
     
+    outputLength = 0
+    if args.sentences >= 0:
+        outputMode = OutputMode.SENTENCES
+        outputLength = args.sentences
+    else:
+        outputMode = OutputMode.WORDS
+        outputLength = args.words
+    
+    if args.paragraphs >= 1:
+        outputParagraphs = args.paragraphs
+    else:
+        outputParagraphs = random.randint(LOWER_NUM_PARAGRAPHS,
+                                          UPPER_NUM_PARAGRAPHS)
+    
     # Build the Markov chain
-    mc = LanguageGenerator(args.input_file, args.chain_length, chainMode)
-    mc.print_random_message(200, OutputMode.WORDS)
+    mc = LanguageGenerator(args.inputFile, args.chain_length, chainMode)
+    mc.print_random_message(outputLength, outputMode, outputParagraphs)
     
 if __name__ == "__main__":
     sys.exit(main())
