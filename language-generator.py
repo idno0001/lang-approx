@@ -260,10 +260,8 @@ def main(argv=None):
     # The chainMode will default to chars unless -w is the *only* argument.
     if args.chain_words and not args.chain_chars:
         chainMode = ChainMode.WORDS
-        print "words"
     else:
         chainMode = ChainMode.CHARS
-        print "chars"
     
     # Build the Markov chain
     mc = LanguageGenerator(args.input_file, args.chain_length, chainMode)
