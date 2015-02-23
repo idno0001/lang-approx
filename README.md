@@ -1,2 +1,2 @@
-# lang-approx
-Approximate a language using an n-step Markov chain.
+# language-generator
+Using a sample input text, generate more text.
