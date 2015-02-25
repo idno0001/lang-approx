@@ -324,11 +324,11 @@ def main(argv=None):
     p.add_argument("-l", "--chain-length", type=int,
             default=1, metavar="LENGTH",
             help="the LENGTH of the Markov chain")
-    p.add_argument("-w", "--words", type=int, default=-1, metavar="N",
+    p.add_argument("-w", "--output-words", type=int, default=-1, metavar="N",
             help="output N words (N=0 selects a random positive integer)")
-    p.add_argument("-s", "--sentences", type=int, default=-1, metavar="N",
+    p.add_argument("-s", "--output-sentences", type=int, default=-1, metavar="N",
             help="output N sentences (N=0 selects a random positive integer)")
-    p.add_argument("-p", "--paragraphs", type=int, default=1, metavar="N",
+    p.add_argument("-p", "--output-paragraphs", type=int, default=1, metavar="N",
             help="output N paragraphs (N=0 selects a random positive integer)")
     args = p.parse_args()
     
@@ -340,16 +340,16 @@ def main(argv=None):
     outputLength = 0
     
     # Determine what to output, defaulting to words if necessary.
-    if args.sentences >= 0:
+    if args.output_sentences >= 0:
         outputMode = OutputMode.SENTENCES
-        outputLength = args.sentences
+        outputLength = args.output_sentences
     else:
         outputMode = OutputMode.WORDS
-        outputLength = args.words
+        outputLength = args.output_words
     
     # Number of paragraphs, randomising if not specified.
-    if args.paragraphs >= 1:
-        outputParagraphs = args.paragraphs
+    if args.output_paragraphs >= 1:
+        outputParagraphs = args.output_paragraphs
     else:
         outputParagraphs = random.randint(LOWER_NUM_PARAGRAPHS,
                                           UPPER_NUM_PARAGRAPHS)
