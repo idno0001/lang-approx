@@ -4,7 +4,7 @@
 As the name suggests, *language-generator* generates text that resembles a 
 language in some way.  The idea is simple: it takes a sample input text and 
 computes the conditional probabilities that characters (respectively words) 
-follow a string of other characters (respectively word) of, say, length *n*.  
+follow a string of other characters (respectively words) of, say, length *n*.  
 This gives an *n*-step Markov chain.  Using this Markov chain, 
 *language-generator* can then print random text with the same conditional 
 probabilities.
@@ -82,6 +82,15 @@ optional arguments:
   -p N, --paragraphs N  output N paragraphs (N=0 selects a random positive
                         integer)
 ```
+
+## Current issues and future improvements
+The following may be added or improved in the future:
+* When the user chooses to print a fixed number of words, the number printed 
+may be incorrect.
+* $0$-step Markov chains do not work.
+* Double space sentence delimiters should be generalised.
+* The conditional probabilities are recalculated each time. A temporary file 
+could be used to store the Markov chain for later use.
 
 <sup>1</sup> A quick search for `double space sentence` on your favourite 
 search engine will reveal that this is frowned upon by many people.  I do it 

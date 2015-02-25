@@ -216,7 +216,7 @@ class LanguageGenerator:
     def at_word_boundary(self, lastString):
         """ Return True if at a word boundary. """
         if self.chainMode == ChainMode.CHARS:
-            return lastString[:1] == " "
+            return lastString[-1] == " "
         elif self.chainMode == ChainMode.WORDS:
             return True
        
@@ -292,7 +292,7 @@ class LanguageGenerator:
                         causes for no choice?)  Reset lastString.
                         """
                         lastString = self.get_init_string()
-                if i < paragraphs:
+                if i < paragraphs - 1:
                     msg += self.new_paragraph()
             return self.list_to_string(msg)
         except SentenceError as e:
