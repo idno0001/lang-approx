@@ -106,6 +106,7 @@ may be incorrect.
 * Double space sentence delimiters should be generalised.
 * The conditional probabilities are recalculated each time. A temporary file 
 could be used to store the Markov chain for later use.
+* Quotation marks are sometimes orphaned.
 
 <sup>1</sup> A quick search for `double space sentence` on your favourite 
 search engine will reveal that this is frowned upon by many people. From my 
