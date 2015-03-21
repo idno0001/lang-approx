@@ -10,8 +10,9 @@ This gives an n-step Markov chain. Using this Markov chain,
 probabilities.
 
 ## Requirements
-The only requirement is [Python 2.7](https://www.python.org/downloads/). 
-Python 3 is not supported, but older releases of Python *may* work (untested).
+The only requirement is [Python 2.7](https://www.python.org/downloads/). Python 
+3 is not supported, but older releases of Python *may* work as long as the 
+`argparse` module is [installed](https://pypi.python.org/pypi/argparse/).
 
 ## Input texts
 [Project Gutenberg](https://www.gutenberg.org/) is a good source for free 
@@ -68,11 +69,19 @@ being counted incorrectly.)
 to produce a 3-step Markov chain of words. The `-p 0` argument chooses a 
 random number of paragraphs to print, and the `--sentences 0` argument means 
 that each paragraph has a random number of sentences.
+5. Use:
+
+    ```
+    $ python language-generator.py -l 3 -c chars -w 50 --no-punctuation --case-insensitive middlemarch.txt
+    ```
+to produce a case insensitive version of Example 3 with all punctuation 
+removed.
 
 ## General usage
 ```
 usage: language-generator.py [-h] [-c {chars,words}] [-l LENGTH] [-w N] [-s N]
-                             [-p N]
+                             [-p N] [--case-sensitive] [--case-insensitive]
+                             [--punctuation] [--no-punctuation]
                              [FILE]
 
 Take some text, create a Markov chain (of chars or words), and use the Markov
@@ -96,6 +105,10 @@ optional arguments:
   -p N, --output-paragraphs N
                         output N paragraphs (N=0 selects a random positive
                         integer)
+  --case-sensitive      do not ignore case (default)
+  --case-insensitive    ignore case
+  --punctuation         retain all punctuation (default)
+  --no-punctuation      remove punctuation
 ```
 
 ## Current issues and future improvements

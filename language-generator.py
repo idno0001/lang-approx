@@ -37,16 +37,18 @@ class SentenceError(Exception):
         return "SentenceError: No sentences in source text."
 
 class LanguageGenerator:
-    def __init__(self, inFile, chainLength, chainMode):
+    def __init__(self, inFile, chainLength, chainMode, caseSensitive, 
+            punctuation):
         self.chainLength = chainLength
         self.chainMode = chainMode
         self.mc = autovivify(chainLength + 1, int)
+        self.punctuation = punctuation
         
         # Assume that there is no sentence structure in inFile (for now).
         self.noSentences = True
         
         # Construct the conditional probabilities.
-        self.build_markov_chain(inFile)
+        self.build_markov_chain(inFile, caseSensitive)
         inFile.close()
 
     def get_restart_msg_string(self):
@@ -55,7 +57,7 @@ class LanguageGenerator:
         single space because we cannot check that the previous 2
         characters are spaces.
         """
-        if self.chainLength == 1:
+        if self.chainLength == 1 or not self.punctuation:
             return " "
         else:
             return "  "
@@ -86,15 +88,22 @@ class LanguageGenerator:
         """
         return re.findall(r"[^ ]+ | ", l)
 
-    def tidy_sentence(self, l):
+    def tidy_sentence(self, l, caseSensitive):
         """ Remove surrounding white space from l and then add a
         trailing space to help delimit words on different lines.
         """
-        tidiedSentence = string.strip(l) + " "
+        newSentence = l
+        if not caseSensitive:
+            newSentence = newSentence.upper()
+        if not self.punctuation:
+            newSentence = newSentence.translate(string.maketrans("",""), 
+                    string.punctuation)
+            newSentence = " ".join(newSentence.split())
+        newSentence = string.strip(newSentence) + " "
         if self.chainMode == ChainMode.CHARS:
-            return tidiedSentence
+            return newSentence
         elif self.chainMode == ChainMode.WORDS:
-            return self.wordify_line(tidiedSentence)
+            return self.wordify_line(newSentence)
 
     def get_blank(self):
         """ Return a blank character in the correct form. """
@@ -116,16 +125,19 @@ class LanguageGenerator:
         elif self.chainMode == ChainMode.WORDS:
             return prevString + [currentString]
 
-    def build_markov_chain(self, inFile):
+    def build_markov_chain(self, inFile, caseSensitive):
         """ Compute the conditional probabilities. """
         lastString = self.get_init_string()
         nextString = self.get_empty_string()
         currentChain = self.mc
         lastLine = self.get_blank()
         for line in inFile:
-            sLine = self.tidy_sentence(line)
+            sLine = self.tidy_sentence(line, caseSensitive)
             # Ignore paragraph breaks.
-            if not self.is_blank(lastLine) or not self.is_blank(sLine):
+            if (not ((not self.punctuation and self.is_blank(sLine))
+                     or (self.punctuation
+                         and self.is_blank(lastLine)
+                         and self.is_blank(sLine)))):
                 for i in xrange(len(sLine)):
                     # At the start of the input: build up the string of 
                     # preceding characters.
@@ -330,6 +342,18 @@ def main(argv=None):
             help="output N sentences (N=0 selects a random positive integer)")
     p.add_argument("-p", "--output-paragraphs", type=int, default=1, metavar="N",
             help="output N paragraphs (N=0 selects a random positive integer)")
+    p.add_argument("--case-sensitive", dest="case_sensitive", 
+            action="store_true",
+            help="do not ignore case (default)")
+    p.add_argument("--case-insensitive", dest="case_sensitive", 
+            action="store_false",
+            help="ignore case")
+    p.add_argument("--punctuation", dest="punctuation", action="store_true",
+            help="retain all punctuation (default)")
+    p.add_argument("--no-punctuation", dest="punctuation", 
+            action="store_false",
+            help="remove punctuation")
+    p.set_defaults(case_sensitive=True, punctuation=True)
     args = p.parse_args()
     
     # Requested Markov chain type.
@@ -355,7 +379,8 @@ def main(argv=None):
                                           UPPER_NUM_PARAGRAPHS)
     
     # Build the Markov chain
-    mc = LanguageGenerator(args.inputFile, args.chain_length, chainMode)
+    mc = LanguageGenerator(args.inputFile, args.chain_length, chainMode, 
+            args.case_sensitive, args.punctuation)
     mc.print_random_message(outputLength, outputMode, outputParagraphs)
     
 if __name__ == "__main__":
