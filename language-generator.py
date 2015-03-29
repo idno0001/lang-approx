@@ -41,7 +41,7 @@ class LanguageGenerator:
             punctuation):
         self.chainLength = chainLength
         self.chainMode = chainMode
-        self.mc = autovivify(chainLength + 1, int)
+        self.mc = autovivify(2, int) # Needs to be 1 for 0-step.
         self.punctuation = punctuation
         
         # Assume that there is no sentence structure in inFile (for now).
@@ -92,7 +92,7 @@ class LanguageGenerator:
         """ Remove surrounding white space from l and then add a
         trailing space to help delimit words on different lines.
         """
-        newSentence = l
+        newSentence = unicode(l, errors="ignore")
         if not caseSensitive:
             newSentence = newSentence.upper()
         if not self.punctuation:
@@ -129,7 +129,6 @@ class LanguageGenerator:
         """ Compute the conditional probabilities. """
         lastString = self.get_init_string()
         nextString = self.get_empty_string()
-        currentChain = self.mc
         lastLine = self.get_blank()
         for line in inFile:
             sLine = self.tidy_sentence(line, caseSensitive)
@@ -146,11 +145,8 @@ class LanguageGenerator:
                                                          sLine[i])
                     # Not at the start: we know the preceding characters.
                     else:
-                        currentChain = self.mc
-                        for c in lastString:
-                            currentChain = currentChain[c]
                         nextString = sLine[i]
-                        currentChain[nextString] += 1
+                        self.mc[lastString][nextString] += 1
                         lastString = self.joined_strings(lastString[1:],
                                                          nextString)
                     if (self.noSentences
@@ -179,51 +175,41 @@ class LanguageGenerator:
         elif self.chainMode == ChainMode.WORDS:
             return [[x] + s for s in nextLot]
 
-    def get_possibilities(self, mc):
-        """ Returns a list of the possible subsequent characters/strings
-        at the end of a given sequence in the Markov chain.  mc should
-        be the Markov chain at the final step.
+    def get_possibilities(self, pc):
+        """ Returns a weighted list of the possible subsequent 
+        characters/strings, given that the previous characters were pc.
         """
         if self.chainMode == ChainMode.CHARS:
-            return [s for s in mc for t in xrange(mc[s])]
+            return [s for s in self.mc[pc] for t in xrange(self.mc[pc][s])]
         elif self.chainMode == ChainMode.WORDS:
-            return [[s] for s in mc for t in xrange(mc[s])]
+            return [[s] for s in self.mc[pc] for t in xrange(self.mc[pc][s])]
+    
+    def complete_preceding_chars(self, pc):
+        """ Returns a list of characters/strings of length chain_length, given 
+        that the first few characters/strings is pc.
+        """
+        l = []
+        for key in self.mc.keys():
+            if key[:len(pc)] == pc:
+                l.append(key)
+        return l
 
-    def get_rand_list(self, prevString, levels=None, mc=None):
+    def get_rand_list(self, prevString):
         """ If levels == 0, return a list of the possible next
         character. If levels >= 1, do the same for the next possible
         strings (with length given by levels). Both lists are weighted
         according to the probabilities that the elements occur.
         """
-        if mc is None:
-            mc = self.mc
-        if levels is None:
-            levels = self.chainLength
-        randList = []
-        
-        # The following should raise an exception.
-        # if len(prevString) > levels:
-        if prevString:
-            # Take the next character in the preceding chain.
-            for c in prevString:
-                mc = mc[c]
-            nextStrings = self.get_rand_list(self.get_empty_string(),
-                                           levels - len(prevString),
-                                           mc)
-            randList += nextStrings
-        elif levels >= 1 and not prevString:
-            # No preceding characters: random choice of subsequent levels.
-            for x in mc:
-                
-                nextStrings = self.join_freq_list(x,
-                        self.get_rand_list(prevString,
-                                           levels - 1,
-                                           mc[x]))
-                randList += nextStrings
+        if len(prevString) == self.chainLength:
+            return self.get_possibilities(prevString)
         else:
-            # No preceding characters and at the final level.
-            return self.get_possibilities(mc)
-        return randList
+            # Not enough preceding characters; look at all subsequent 
+            # possibilities.
+            randList = []
+            for x in self.complete_preceding_chars(prevString):
+                randList += [x[len(prevString):] + y
+                        for y in self.get_possibilities(x)]
+            return randList
 
     def at_word_boundary(self, lastString):
         """ Return True if at a word boundary. """
@@ -300,8 +286,7 @@ class LanguageGenerator:
                             stopCounter += 1
                     else:
                         """ Nothing to choose, i.e. we have reached the
-                        end of the file.  (Presumably there are no other
-                        causes for no choice?)  Reset lastString.
+                        end of the file.  Reset lastString.
                         """
                         lastString = self.get_init_string()
                 if i < paragraphs - 1:
